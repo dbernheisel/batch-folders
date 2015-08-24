@@ -10,6 +10,8 @@ require "Pathname"
 require "FileUtils"
 
 prepend = "Batch_"
+batchsize = ""
+filepath = ""
 
 def leave(message)
 	puts message
@@ -17,15 +19,17 @@ def leave(message)
 	exit
 end
 
-def newPath(f, newf)
-	return f.join(newf)
+def prompt(*args)
+	print(*args)
+	result = $stdin.gets.chomp
+	return result.empty? ? exit : result
 end
 
-ARGV[0] != nil ? filepath = Pathname.new(File.expand_path(ARGV[0].strip)) : leave("No file path given")
-ARGV[1] != nil ? batchsize = ARGV[1].strip : leave("No batch size given")
+ARGV[0] != nil ? filepath = Pathname.new(File.expand_path(ARGV[0].strip)) : filepath = Pathname.new(File.expand_path(prompt("Please supply the filepath: ")))
+ARGV[1] != nil ? batchsize = ARGV[1].strip : batchsize = prompt("Please specify how large to make the batches: ")
 
 # Check if directory exists
-!filepath.directory? ? leave("Directory does not exist") : nil
+filepath.directory? ? nil : leave("Directory does not exist")
 Dir.chdir(filepath)
 
 # Check if there are any files in the directory
@@ -35,8 +39,7 @@ Dir.glob("*.*").size == 0 ? leave("No files in the directory") : nil
 begin
 	batchsize = batchsize.to_i
 rescue
-	puts "Not a valid batch size"
-	exit
+	leave("Not a valid batch size")
 end
 batchsize < 1 ? leave("Number is not above 0") : nil
 
@@ -53,7 +56,7 @@ Dir.glob("*.*") do |f|
 		end
 
 		# create new path
-		newpath = newPath(filepath, prepend + folderi.to_s)
+		newpath = filepath.join(prepend + folderi.to_s)
 		begin
 			FileUtils.mkdir(newpath)
 		rescue
