@@ -14,62 +14,54 @@ batchsize = ""
 filepath = ""
 
 def leave(message)
-	puts message
-	puts "Usage: ./batch-files.rb \"/path/to/folder\" 5000"
-	exit
+  puts message
+  puts "Usage: ./batch-files.rb \"/path/to/folder\" 5000"
+  exit
 end
 
 def prompt(*args)
-	print(*args)
-	result = $stdin.gets.chomp
-	return result.empty? ? exit : result
+  print(*args)
+  result = $stdin.gets.chomp
+  result.empty? ? exit : result
 end
 
-ARGV[0] != nil ? filepath = Pathname.new(File.expand_path(ARGV[0].strip)) : filepath = Pathname.new(File.expand_path(prompt("Please supply the filepath: ")))
-ARGV[1] != nil ? batchsize = ARGV[1].strip : batchsize = prompt("Please specify how large to make the batches: ")
+filepath = ARGV[0] != nil ?
+  Pathname.new(File.expand_path(ARGV[0].strip)) :
+  Pathname.new(File.expand_path(prompt("Please supply the filepath: ")))
+batchsize = ARGV[1] != nil ?
+  ARGV[1].strip :
+  prompt("Please specify how large to make the batches: ")
 
 # Check if directory exists
-filepath.directory? ? nil : leave("Directory does not exist")
+leave("Directory does not exist") if filepath.directory?
 Dir.chdir(filepath)
 
 # Check if there are any files in the directory
-Dir.glob("*.*").size == 0 ? leave("No files in the directory") : nil
+leave("No files in the directory") if Dir.glob("*.*").size == 0
 
 # Check if given number is a real number.
-begin
-	batchsize = batchsize.to_i
-rescue
-	leave("Not a valid batch size")
-end
-batchsize < 1 ? leave("Number is not above 0") : nil
+batchsize = batchsize.to_i rescue leave("Not a valid batch size")
+leave("Number is not above 0") if batchsize < 1
 
 # start dividing files
 folderi = 1
 i = 1
 
 Dir.glob("*.*") do |f|
-	if File.file?(f) # skip anything not a file
-		# check if we're needing to create a batch folder and increment
-		if i > batchsize
-			i = 1
-			folderi += 1
-		end
+  if File.file?(f) # skip anything not a file
+    # check if we're needing to create a batch folder and increment
+    if i > batchsize
+      i = 1
+      folderi += 1
+    end
 
-		# create new path
-		newpath = filepath.join(prepend + folderi.to_s)
-		begin
-			FileUtils.mkdir(newpath)
-		rescue
-			# new path already exists, so continue.
-		end
-
-		# move the file into the batch folder
-		puts "#{prepend}#{folderi.to_s} \t Moving #{f}"
-		begin
-			FileUtils.mv(f,newpath.join(File.basename(f)))
-		rescue
-			puts "Failed to move #{f} to Batch #{newpath}"
-		end
-		i += 1
-	end
+    # create new path
+    newpath = filepath.join(prepend + folderi.to_s)
+    FileUtils.mkdir(newpath) rescue nil # new path already exists, so continue.
+    
+    # move the file into the batch folder
+    puts "#{prepend}#{folderi.to_s} \t Moving #{f}"
+    FileUtils.mv(f,newpath.join(File.basename(f))) rescue puts "Failed to move #{f} to Batch #{newpath}"
+    i += 1
+  end
 end
